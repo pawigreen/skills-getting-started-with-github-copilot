@@ -4,6 +4,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // Helper: get initials from a name or email
+  function getInitials(text) {
+    if (!text) return "";
+    const parts = text.replace(/[_.-]/g, " ").split(/\s+/).filter(Boolean);
+    if (parts.length === 1) {
+      // if email like alice@example.com, take before @
+      const beforeAt = parts[0].split("@")[0];
+      return (beforeAt[0] || "").toUpperCase();
+    }
+    return ((parts[0][0] || "") + (parts[1][0] || "")).toUpperCase();
+  }
+
+  // Helper: simple HTML escape to avoid injecting raw HTML
+  function escapeHtml(str) {
+    if (!str) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -20,11 +43,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Build participants HTML (bulleted list with initials badge)
+        const participantsHtml = details.participants && details.participants.length
+          ? `<ul class="participants-list">${details.participants
+              .map(p => `<li class="participant-item"><span class="initials-badge">${getInitials(p)}</span>${escapeHtml(p)}</li>`)
+              .join("")}</ul>`
+          : `<p class="info">No participants yet</p>`;
+
         activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <h4>${escapeHtml(name)}</h4>
+          <p>${escapeHtml(details.description)}</p>
+          <p><strong>Schedule:</strong> ${escapeHtml(details.schedule)}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+
+          <div class="participants">
+            <h5>Participants</h5>
+            ${participantsHtml}
+          </div>
         `;
 
         activitiesList.appendChild(activityCard);
